@@ -2,6 +2,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_case/src/sample_feature/book_favorite_list.dart';
+import 'package:flutter_case/src/sample_feature/book_item_details_view.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 
@@ -54,10 +55,10 @@ class _MyAppState extends State<MyApp> {
       darkTheme: ThemeData.dark(),
       themeMode: widget.settingsController.themeMode,
       onGenerateRoute: (settings) {
-        if (settings.name == BookItemListView.routeName) {
+        if (settings.name == BookItemDetailsView.routeName) {
           return MaterialPageRoute<void>(
             settings: settings,
-            builder: (context) => const BookItemListView(),
+            builder: (context) => const BookItemDetailsView(),
           );
         }
         return MaterialPageRoute<void>(
