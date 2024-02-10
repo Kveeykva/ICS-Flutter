@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import './book_item_details_view.dart';
+import 'package:flutter_case/src/sample_feature/book_item_details_view.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'styles.dart';
@@ -14,6 +14,7 @@ class BookItemListView extends StatefulWidget {
 class BookItemListViewState extends State<BookItemListView> {
   final _scrollController = ScrollController();
   final _list = <dynamic>[];
+  final TextEditingController _searchController = TextEditingController();
   int _currentPage = 0;
   bool _isLoading = false;
   bool _hasMore = true;
@@ -21,26 +22,28 @@ class BookItemListViewState extends State<BookItemListView> {
   @override
   void initState() {
     _scrollController.addListener(_loadMore);
-    _fetchData(_currentPage);
+    _fetchData(_currentPage, null);
     super.initState();
   }
 
   @override
   void dispose() {
     _scrollController.dispose();
+    _searchController.dispose();
     super.dispose();
   }
 
-  Future<void> _fetchData(int pageKey) async {
+  Future<void> _fetchData(int pageKey, String? query) async {
     if (!mounted) return;
     int perPageItemCount = 10;
     int startIndex = pageKey * perPageItemCount;
+    String q = query != null && query.isNotEmpty ? query : 'a';
     setState(() {
       _isLoading = true;
     });
     try {
       String url =
-          'https://www.googleapis.com/books/v1/volumes?maxResults=$perPageItemCount&startIndex=$startIndex&orderBy=relevance&q=Tolkien';
+          'https://www.googleapis.com/books/v1/volumes?maxResults=$perPageItemCount&startIndex=$startIndex&orderBy=relevance&q=$q';
 
       final response = await http.get(Uri.parse(url));
       if (!mounted) return;
@@ -73,8 +76,15 @@ class BookItemListViewState extends State<BookItemListView> {
             _scrollController.position.maxScrollExtent &&
         !_isLoading) {
       _currentPage++;
-      _fetchData(_currentPage);
+      _fetchData(_currentPage, _searchController.text);
     }
+  }
+
+  void _search() {
+    _hasMore = true; // Reset hasMore when performing a new search
+    _currentPage = 0;
+    _list.clear();
+    _fetchData(_currentPage, _searchController.text);
   }
 
   void _navigateToDetails(BuildContext context, Map<String, dynamic> args) {
@@ -89,7 +99,7 @@ class BookItemListViewState extends State<BookItemListView> {
     _hasMore = true;
     _currentPage = 0;
     _list.clear();
-    await _fetchData(_currentPage);
+    await _fetchData(_currentPage, _searchController.text);
   }
 
   @override
@@ -100,6 +110,24 @@ class BookItemListViewState extends State<BookItemListView> {
       ),
       body: Column(
         children: [
+          Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: TextField(
+              controller: _searchController,
+              decoration: InputDecoration(
+                labelText: 'Ara..',
+                contentPadding: const EdgeInsets.all(8.0),
+                border: const OutlineInputBorder(),
+                suffixIcon: IconButton(
+                  icon: const Icon(Icons.clear),
+                  onPressed: () {
+                    _searchController.clear();
+                  },
+                ),
+              ),
+              onSubmitted: (_) => _search(),
+            ),
+          ),
           Expanded(
             child: RefreshIndicator(
               onRefresh: _refreshList,
@@ -116,11 +144,6 @@ class BookItemListViewState extends State<BookItemListView> {
                   }
                   dynamic volumeInfo = _list[index]['volumeInfo'];
                   String id = _list[index]['id'];
-                  String description =
-                      (_list[index]['volumeInfo']?['description'] as String?) ??
-                          '';
-                  String authors =
-                      volumeInfo['authors']?.join(', ') ?? 'Unknown Author';
 
                   return ListTile(
                     leading: Container(
@@ -152,11 +175,9 @@ class BookItemListViewState extends State<BookItemListView> {
                         {
                           'id': id,
                           'title': volumeInfo['title'],
-                          'description': description,
-                          'index': index,
-                          'authors': authors,
-                          'thumbnail': volumeInfo['imageLinks']?['thumbnail'] ??
-                              'https://via.placeholder.com/150',
+                          'smallThumbnail': volumeInfo['imageLinks']
+                                  ?['smallThumbnail'] ??
+                              'https://via.placeholder.com/150'
                         },
                       );
                     },
