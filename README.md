@@ -1,6 +1,4 @@
-# flutter_case
 
-A new Flutter project.
 
 ## Getting Started
 
